@@ -1,13 +1,17 @@
 #include <imgui\imgui.h>
 #include <imgui\imgui_impl_glfw_gl3.h>
-
+#include <iostream>
 bool show_test_window = false;
+
 
 namespace ClothMesh {
 	extern const int numCols;
 	extern const int numRows;
 	extern const int numVerts;
-	int numVirtualVerts;
+
+
+	extern void updateClothMesh(float* array_data);
+
 }
 void GUI() {
 	{	//FrameRate
@@ -22,13 +26,33 @@ void GUI() {
 		ImGui::ShowTestWindow(&show_test_window);
 	}
 }
-
+float arr[14][18];
 void PhysicsInit() {
+	/*int counter = 0;
+	for (int i = 0; i < ClothMesh::numCols; i++){
+		for (int j = 0; j < ClothMesh::numRows; j++) {
+			arr[i][j] = 1;
+		}
+		
+		//TODO
+	}
 
-	//TODO
+	
+
+	for (int i = 0; i < ClothMesh::numCols; i++) {
+		for (int j = 0; j < ClothMesh::numRows; j++) {
+			std::cout << arr[i][j];
+		}
+		std::cout << std::endl;
+
+		//TODO
+	}*/
+
 }
 void PhysicsUpdate(float dt) {
-	//TODO
+	//TODO	}
+
+	ClothMesh::updateClothMesh(*arr);
 }
 void PhysicsCleanup() {
 	//TODO
