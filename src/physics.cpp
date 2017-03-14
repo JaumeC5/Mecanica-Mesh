@@ -21,38 +21,33 @@ void GUI() {
 	}
 
 	// ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-	if(show_test_window) {//
+	if (show_test_window) {//
 		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
 		ImGui::ShowTestWindow(&show_test_window);
 	}
 }
-float arr[14][18];
+float arr[14 * 18 * 3];
 void PhysicsInit() {
-	/*int counter = 0;
-	for (int i = 0; i < ClothMesh::numCols; i++){
-		for (int j = 0; j < ClothMesh::numRows; j++) {
-			arr[i][j] = 1;
-		}
-		
-		//TODO
-	}
-
-	
-
+	int counterX = 0;
+	int counterY = 0;
+	int counter = 0;
 	for (int i = 0; i < ClothMesh::numCols; i++) {
 		for (int j = 0; j < ClothMesh::numRows; j++) {
-			std::cout << arr[i][j];
+
+			arr[(j * ClothMesh::numCols + i) * 3] = i; //x 
+			arr[(j * ClothMesh::numCols + i) * 3 + 1] = j; //y
+			arr[(j * ClothMesh::numCols + i) * 3 + 2] = i; //z
+
 		}
-		std::cout << std::endl;
 
 		//TODO
-	}*/
-
+	}
+	ClothMesh::updateClothMesh(arr);
 }
 void PhysicsUpdate(float dt) {
 	//TODO	}
 
-	ClothMesh::updateClothMesh(*arr);
+
 }
 void PhysicsCleanup() {
 	//TODO
