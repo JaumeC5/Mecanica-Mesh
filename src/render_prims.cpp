@@ -10,7 +10,7 @@ bool renderParticles = false;
 bool renderCloth = true;
 
 namespace Sphere {
-	extern void setupSphere(glm::vec3 pos = glm::vec3(0.f, 0.f, 0.f), float radius = 1.f);
+	extern void setupSphere(glm::vec3 pos = glm::vec3(5.f, 1.f, 0.f), float radius = 1.f);
 	extern void cleanupSphere();
 	extern void updateSphere(glm::vec3 pos, float radius = 1.f);
 	extern void drawSphere();
@@ -23,7 +23,7 @@ namespace Capsule {
 }
 namespace LilSpheres {
 	extern const int maxParticles;
-	extern void setupParticles(int numTotalParticles, float radius = 0.05f);
+	extern void setupParticles(int numTotalParticles, float r = 0.05f);
 	extern void cleanupParticles();
 	extern void updateParticles(int startIdx, int count, float* array_data);
 	extern void drawParticles(int startIdx, int count);
