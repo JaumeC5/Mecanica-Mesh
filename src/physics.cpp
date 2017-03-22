@@ -8,6 +8,8 @@
 bool show_test_window = false;
 float xForce = 0, yForce = -9.81, zForce = 0;
 
+bool reset = false;
+
 namespace Sphere {
 	extern void setupSphere(glm::vec3 pos = glm::vec3(5.f, 1.f, 0.f), float radius = 1.f);
 	extern void cleanupSphere();
@@ -24,6 +26,10 @@ namespace ClothMesh {
 void GUI() {
 	{	//FrameRate
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+		if (ImGui::Button("Reset")) {
+			reset = true;
+		}
 
 		//TODO
 	}
@@ -44,25 +50,18 @@ glm::vec3 * tempMesh;
 glm::vec3 * finalMesh; 
 glm::vec3 f;
 int counter = 0;
-class spring {
-	glm::vec3 originalPos = glm::vec3();
-	//float originalPos[3];
-	glm::vec3 vel = glm::vec3();
-	//float v[3];
-	const float ke = 1;
-	const float kd = 1;
-	const float L = 0.5;
-	float f;
+const float k = 1.f; //rigidez
+class Particle {
 public:
-	float pos[3];
-	//void Update();
-	void fuerza(spring nextNode) {
-		//f = (ke*(sqrt(pow(pos[0] - nextNode.pos[0], 2) + pow(pos[1] - nextNode.pos[1], 2) + pow(pos[2] - nextNode.pos[3], 2))-L) + kd*() )
-		originalPos = glm::vec3();
-		
-	}
+	void calculateForce(Particle nextP);
+	glm::vec3 ActualPos;
+	glm::vec3 OriginalPos;
+	glm::vec3 Force;
 };
-
+void Particle::calculateForce(Particle nextP) {
+	Force += glm::vec3(k*(ActualPos - nextP.ActualPos) - (OriginalPos - nextP.OriginalPos) * (ActualPos - nextP.ActualPos) / sqrt(pow(ActualPos.x - nextP.ActualPos.x, 2) + pow(ActualPos.y - nextP.ActualPos.y, 2) + pow(ActualPos.z - nextP.ActualPos.z, 2)));
+}
+Particle* parVerts;
 void PhysicsInit() {
 	//gravity
 	//muelles
@@ -74,47 +73,31 @@ void PhysicsInit() {
 	finalMesh = new glm::vec3[14 * 18];
 	currMesh = new glm::vec3[14 * 18];
 	lastMesh = new glm::vec3[14 * 18];
-
+	parVerts = new Particle[14 * 18];
 		for (int i = 0; i < ClothMesh::numCols; i++) {
 			for (int j = 0; j < ClothMesh::numRows; j++) {
-
 				if (i == 0 && j == 0) {
 					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -4.5 + i*0.5f);
 				}
 				else if (i == ClothMesh::numCols-1 && j == 0) {
 					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -4.5 + i*0.5f);
-
 				}
-
-				else {
 					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);
-
-					/*	currMesh[(j * ClothMesh::numCols + i) * 3] = -4.5+j*0.5f; //x
-						currMesh[(j * ClothMesh::numCols + i) * 3 + 1] = 9.5; //y
-						currMesh[(j * ClothMesh::numCols + i) * 3 + 2] = -4.5 + i*0.5f; //z
-
-						*/
 					lastMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
-				}
-				f = glm::vec3(0, -9.81, 0);
-/*			
-			lastMesh[(j * ClothMesh::numCols + i) * 3] = currMesh[(j * ClothMesh::numCols + i) * 3];
-			lastMesh[(j * ClothMesh::numCols + i) * 3 + 1] = currMesh[(j * ClothMesh::numCols + i) * 3 + 1];
-			lastMesh[(j * ClothMesh::numCols + i) * 3 + 2] = currMesh[(j * ClothMesh::numCols + i) * 3 + 2];*/
-			
+					f = glm::vec3(0, -9.81, 0);
+					parVerts[j * ClothMesh::numCols + i].OriginalPos = currMesh[(j * ClothMesh::numCols + i)];
 		}
-		//TODO
 	}
 	//ClothMesh::updateClothMesh(currMesh);
-	
 }
 void PhysicsUpdate(float dt) {
 	//TODO	
 	float sphereX = -4 + rand() % 8;
 	float sphereY = 1 +rand () % 9;
 	float sphereZ = -4 + rand() % 8;
-	if (counter >= 400) { //this is 20 seconds.
 
+	 if (counter >= 400) { //this is 20 seconds.
+		PhysicsInit();
 		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
 		counter = 0;
 	}
@@ -124,7 +107,6 @@ void PhysicsUpdate(float dt) {
 	for (int i = 0; i < ClothMesh::numCols; i++) {
 		for (int j = 0; j < ClothMesh::numRows; j++) {
 			tempMesh = currMesh;
-
 			if (i == 0 && j == 0) {
 				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, -4.5 + 0.5f);
 			}
@@ -134,10 +116,110 @@ void PhysicsUpdate(float dt) {
 			finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + (f / glm::vec3(1,1,1))*(dt*dt);
 			lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)];
 			currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)];
+
+			parVerts[(j * ClothMesh::numCols + i)].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
+			currMesh[(j * ClothMesh::numCols + i)] = parVerts[(j * ClothMesh::numCols + i)].ActualPos;
+			if (i == 0 && j == 0) //Particula lado izquierdo arriba. 
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 1)]); //fila siguiente columna actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i + 1)]); //diagonal hacia abajo derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 2 * ClothMesh::numCols + i)]); //doble derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 2)]); // doble abajo
+			}
+			if (i == ClothMesh::numCols - 1 && j == 0) //Particula lado izquierda abajo
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i - 1)]); //fila anterior columan actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i - 1)]); // diagonal hacia arriba derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 2 * ClothMesh::numCols + i)]); //doble derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j* ClothMesh::numCols + i - 2)]);// doble arriba
+			}
+			if (i == 0 && j == ClothMesh::numRows - 1) //Ultima particula lado derecha arriba.
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 1)]); //fila siguiente columna actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i + 1)]); // diagonal hacia abajo izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 2)]); // doble abajo
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 2 * ClothMesh::numCols + i)]); // doble izquierda
+			}
+			if (i == ClothMesh::numCols - 1 && j == ClothMesh::numRows - 1) //Ultima particula lado derecha abajo.
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i - 1)]); //fila anterior columan actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i - 1)]); //diagonal hacia arriba izquierda;
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 2 * ClothMesh::numCols + i)]); // doble izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j* ClothMesh::numCols + i - 2)]);// doble arriba
+			}
+			//
+			if (j == 1 && i==0 || i== 1 ) // Particula Segunda columna todas las filas.
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 1)]); //fila siguiente columna actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i - 1)]); //fila anterior columan actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i + 1)]); //diagonal hacia abajo derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i - 1)]); //diagonal hacia arriba izquierda;
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i - 1)]); // diagonal hacia arriba derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i + 1)]); // diagonal hacia abajo izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 2 * ClothMesh::numCols + i)]); //doble derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 2)]); // doble abajo
+			}
+
+			if (j == 1 && i == ClothMesh::numCols-1 || i == ClothMesh::numCols-2) // Penultima particula penultima columna todas las filas
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 1)]); //fila siguiente columna actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i - 1)]); //fila anterior columan actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i + 1)]); //diagonal hacia abajo derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i - 1)]); //diagonal hacia arriba izquierda;
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i - 1)]); // diagonal hacia arriba derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i + 1)]); // diagonal hacia abajo izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 2)]); // doble abajo
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 2 * ClothMesh::numCols + i)]); // doble izquierda
+			}
+			if (j == ClothMesh::numRows-2 && i == 0 || i == 1) {
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 1)]); //fila siguiente columna actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i - 1)]); //fila anterior columan actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i + 1)]); //diagonal hacia abajo derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i - 1)]); //diagonal hacia arriba izquierda;
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i - 1)]); // diagonal hacia arriba derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i + 1)]); // diagonal hacia abajo izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 2 * ClothMesh::numCols + i)]); //doble derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j* ClothMesh::numCols + i - 2)]);// doble arriba
+			}
+			if (j == ClothMesh::numRows - 2 && i == ClothMesh::numCols-1 || i == ClothMesh::numCols - 2)
+			{
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i + 1)]); //fila siguiente columna actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i - 1)]); //fila anterior columan actual
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i + 1)]); //diagonal hacia abajo derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i - 1)]); //diagonal hacia arriba izquierda;
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j + 1 * ClothMesh::numCols + i - 1)]); // diagonal hacia arriba derecha
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 1 * ClothMesh::numCols + i + 1)]); // diagonal hacia abajo izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j - 2 * ClothMesh::numCols + i)]); // doble izquierda
+				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j* ClothMesh::numCols + i - 2)]);// doble arriba
+			}
+
+
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j+1 * ClothMesh::numCols + i)]); // fila actual siguiente columna
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j-1 * ClothMesh::numCols + i)]);// fila actual anterior columna
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i+1)]); //fila siguiente columna actual
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i-1)]); //fila anterior columan actual
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j+1 * ClothMesh::numCols + i+1)]); //diagonal hacia abajo derecha
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j-1* ClothMesh::numCols + i-1)]); //diagonal hacia arriba izquierda;
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j+1 * ClothMesh::numCols + i-1)]); // diagonal hacia arriba derecha
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j-1 * ClothMesh::numCols + i+1)]); // diagonal hacia abajo izquierda
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j+2 * ClothMesh::numCols + i)]); //doble derecha
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + i+2)]); // doble abajo
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j-2 * ClothMesh::numCols + i)]); // doble izquierda
+			parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j* ClothMesh::numCols + i-2)]);// doble arriba
 		}
 	}
-
-
 /*	for (int i = 0; i < ClothMesh::numCols; i++) {
 		for (int j = 0; j < ClothMesh::numRows; j++) {
 			tempMesh = currMesh;
@@ -166,5 +248,5 @@ void PhysicsUpdate(float dt) {
 
 void PhysicsCleanup() {
 	//TODO
-	
+	delete currMesh;
 }
