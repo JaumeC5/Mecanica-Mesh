@@ -78,14 +78,24 @@ void PhysicsInit() {
 		for (int i = 0; i < ClothMesh::numCols; i++) {
 			for (int j = 0; j < ClothMesh::numRows; j++) {
 
-				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);
+				if (i == 0 && j == 0) {
+					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -4.5 + i*0.5f);
+				}
+				else if (i == ClothMesh::numCols-1 && j == 0) {
+					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -4.5 + i*0.5f);
 
-		/*	currMesh[(j * ClothMesh::numCols + i) * 3] = -4.5+j*0.5f; //x 
-			currMesh[(j * ClothMesh::numCols + i) * 3 + 1] = 9.5; //y 
-			currMesh[(j * ClothMesh::numCols + i) * 3 + 2] = -4.5 + i*0.5f; //z
-			
-			*/
-				lastMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];	
+				}
+
+				else {
+					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);
+
+					/*	currMesh[(j * ClothMesh::numCols + i) * 3] = -4.5+j*0.5f; //x
+						currMesh[(j * ClothMesh::numCols + i) * 3 + 1] = 9.5; //y
+						currMesh[(j * ClothMesh::numCols + i) * 3 + 2] = -4.5 + i*0.5f; //z
+
+						*/
+					lastMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
+				}
 				f = glm::vec3(0, -9.81, 0);
 /*			
 			lastMesh[(j * ClothMesh::numCols + i) * 3] = currMesh[(j * ClothMesh::numCols + i) * 3];
