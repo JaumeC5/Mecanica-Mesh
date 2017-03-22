@@ -124,6 +124,13 @@ void PhysicsUpdate(float dt) {
 	for (int i = 0; i < ClothMesh::numCols; i++) {
 		for (int j = 0; j < ClothMesh::numRows; j++) {
 			tempMesh = currMesh;
+
+			if (i == 0 && j == 0) {
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, -4.5 + 0.5f);
+			}
+			else if (i == ClothMesh::numCols - 1 && j == 0) {
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5,  0.5f);
+			}
 			finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + (f / glm::vec3(1,1,1))*(dt*dt);
 			lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)];
 			currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)];
