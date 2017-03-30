@@ -39,18 +39,15 @@ void GUI() {
 		ImGui::ShowTestWindow(&show_test_window);
 	}
 }
-//float *currMesh; // mesh array
-//float *lastMesh;
-//float *tempMesh;
-//float *finalMesh;
+
 glm::vec3 *currMesh;	
 glm::vec3* lastMesh;
 glm::vec3 * tempMesh;
 glm::vec3 * finalMesh; 
 glm::vec3 f;
 int counter = 0;
-const float ke = 1.5f; //rigidez
-const float kd = 1.5f;
+const float ke = 1000.f; //rigidez
+const float kd = 50.f; // dumping
 class Particle {
 public:
 	void calculateForce(Particle nextP, float dist);
@@ -64,8 +61,10 @@ public:
 void Particle::calculateForce(Particle nextP, float dist) {
 		
 	 // se iguala a sa força externa. Motius obvis
-	Force += -(ke * (glm::length(ActualPos - nextP.ActualPos)));//-(ke * (glm::length(ActualPos - nextP.ActualPos) - dist) +glm::dot(kd*(vel - nextP.vel), (ActualPos / nextP.ActualPos) / glm::length(ActualPos - nextP.ActualPos))) *(ActualPos / nextP.ActualPos) / glm::length(ActualPos - nextP.ActualPos);
-		
+	Force +=- (ActualPos - nextP.ActualPos)*(glm::length(ActualPos - nextP.ActualPos));
+	
+	//amb aixo funiona al reves wtf
+	//-(ActualPos - nextP.ActualPos)*(glm::length(ActualPos - nextP.ActualPos));	
 }
 	Particle* parVerts;
 void PhysicsInit() {
@@ -76,8 +75,9 @@ void PhysicsInit() {
 	lastMesh = new glm::vec3[14 * 18];
 
 	parVerts = new Particle[14 * 18];
-		for (int i = 0; i < ClothMesh::numCols; i++) {
+		
 			for (int j = 0; j < ClothMesh::numRows; j++) {
+				for (int i = 0; i < ClothMesh::numCols; i++) {
 				if (i == 0 && j == 0) {
 					currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -9.5 + i*0.5f);
 				}
@@ -109,9 +109,9 @@ void PhysicsUpdate(float dt) {
 	else counter += 1;
 
 	//position update
-	for (int i = 0; i < ClothMesh::numCols; i++) {
+	
 		for (int j = 0; j < ClothMesh::numRows; j++) {
-			
+			for (int i = 0; i < ClothMesh::numCols; i++) {
 			if(i < ClothMesh::numCols-1){ // fuerza a la derecha
 				parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i + 1))], 0.5f);
 			}
@@ -182,11 +182,11 @@ void PhysicsUpdate(float dt) {
 
 				lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)];
 				//cout << "/////////////" << endl;
-				//cout << lastMesh[0].x << endl; //aixo no toca donar lo mateix que currMesh, ja que lastMesh se suposa que emmagametza sa posicio anterior
+				//cout << lastMesh[0].x << endl; 
 				//cout << currMesh[0].x << endl;
 
 
-				finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + ((parVerts[(j*ClothMesh::numCols + i)].Force))*(dt*dt);
+				finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + ((f + parVerts[(j*ClothMesh::numCols + i)].Force))*(dt*dt);
 				currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)];
 
 				parVerts[(j * ClothMesh::numCols + i)].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
@@ -197,9 +197,9 @@ void PhysicsUpdate(float dt) {
 		}
 	}
 	cout << "/////////////" << endl;
-	cout << currMesh[1].x << " " <<lastMesh[1].x << endl;
-	cout << parVerts[1].ActualPos.x <<" "  << parVerts[1].lastPos.x<< endl;
-	//cout << "/////////////" << endl;
+	//cout << parVerts[1].ActualPos.x  << endl;
+	//cout << glm::length(parVerts[1].ActualPos.x - parVerts[2].ActualPos.x) << endl;
+	cout << parVerts[1].Force.x <<" " << parVerts[1].Force.y <<" " << parVerts[1].Force.z<< endl;
 	ClothMesh::updateClothMesh(&currMesh[0].x);
 
 
