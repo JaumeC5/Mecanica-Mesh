@@ -46,23 +46,22 @@ glm::vec3 * tempMesh;
 glm::vec3 * finalMesh; 
 glm::vec3 f;
 int counter = 0;
-const float ke = 1000.f; //rigidez
-const float kd = 50.f; // dumping
+const float ke = 1.2f; //rigidez
+const float kd = 2.2f; // dumping
 class Particle {
 public:
 	void calculateForce(Particle nextP, float dist);
 	glm::vec3 ActualPos;
 	glm::vec3 lastPos;
 	glm::vec3 vel;
-	glm::vec3 OriginalPos;
 	glm::vec3 Force = f;
 	int mass = 1;
 };
 void Particle::calculateForce(Particle nextP, float dist) {
 		
 	 // se iguala a sa força externa. Motius obvis
-	Force +=- (ActualPos - nextP.ActualPos)*(glm::length(ActualPos - nextP.ActualPos));
-	
+	Force += -((ke*(glm::length(ActualPos - nextP.ActualPos))- dist) + kd*glm::dot(vel - nextP.vel ,(ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos));
+		//-(ke * (glm::length(ActualPos - nextP.ActualPos) - dist) + kd*glm::dot(vel-nextP.vel, (ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * glm::dot(vel - nextP.vel, (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)));
 	//amb aixo funiona al reves wtf
 	//-(ActualPos - nextP.ActualPos)*(glm::length(ActualPos - nextP.ActualPos));	
 }
@@ -86,11 +85,16 @@ void PhysicsInit() {
 				}
 
 
-				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f); // distancia horitzontal i vertical entre nodes = 0.5. Distancia doble = 1. Distància diagonal = sqrt(0.5*0.5 + 0.5*0.5);
-				f = glm::vec3(0, -9.81, 0); // força externa, sa gravetat
-				parVerts[j * ClothMesh::numCols + i].OriginalPos = currMesh[(j * ClothMesh::numCols + i)];
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);// distancia horitzontal i vertical entre nodes = 0.5. Distancia doble = 1. Distància diagonal = sqrt(0.5*0.5 + 0.5*0.5);
+				lastMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
+				tempMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
+				finalMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
+
+				f = glm::vec3(0, -9.81 * 2, 0); // força externa, sa gravetat
+				parVerts[j * ClothMesh::numCols + i].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
 				parVerts[j * ClothMesh::numCols + i].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
 				parVerts[j * ClothMesh::numCols + i].Force = glm::vec3(0, 0, 0);
+				parVerts[j * ClothMesh::numCols + i].vel = glm::vec3(0, 0, 0);
 			}
 	}
 	//ClothMesh::updateClothMesh(currMesh);
@@ -199,7 +203,7 @@ void PhysicsUpdate(float dt) {
 	cout << "/////////////" << endl;
 	//cout << parVerts[1].ActualPos.x  << endl;
 	//cout << glm::length(parVerts[1].ActualPos.x - parVerts[2].ActualPos.x) << endl;
-	cout << parVerts[1].Force.x <<" " << parVerts[1].Force.y <<" " << parVerts[1].Force.z<< endl;
+	cout << parVerts[1].vel.x <<" " << parVerts[1].vel.y <<" " << parVerts[1].vel.z<< endl;
 	ClothMesh::updateClothMesh(&currMesh[0].x);
 
 
