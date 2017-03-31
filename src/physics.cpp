@@ -46,19 +46,19 @@ glm::vec3 * tempMesh;
 glm::vec3 * finalMesh; 
 glm::vec3 f;
 int counter = 0;
-const float ke = 1.2f; //rigidez
-const float kd = 2.2f; // dumping
+const float ke = 1.1f; //rigidez
+const float kd = 1.5f; // dumping
 class Particle {
 public:
 	void calculateForce(Particle nextP, float dist);
 	glm::vec3 ActualPos;
 	glm::vec3 lastPos;
 	glm::vec3 vel;
-	glm::vec3 Force = f;
+	glm::vec3 Force;
 	int mass = 1;
 };
 void Particle::calculateForce(Particle nextP, float dist) {
-		
+	
 	 // se iguala a sa força externa. Motius obvis
 	Force += -((ke*(glm::length(ActualPos - nextP.ActualPos))- dist) + kd*glm::dot(vel - nextP.vel ,(ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos));
 		//-(ke * (glm::length(ActualPos - nextP.ActualPos) - dist) + kd*glm::dot(vel-nextP.vel, (ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * glm::dot(vel - nextP.vel, (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)));
@@ -90,7 +90,7 @@ void PhysicsInit() {
 				tempMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
 				finalMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
 
-				f = glm::vec3(0, -9.81 * 2, 0); // força externa, sa gravetat
+				f = glm::vec3(0, -9.81 , 0); // força externa, sa gravetat
 				parVerts[j * ClothMesh::numCols + i].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
 				parVerts[j * ClothMesh::numCols + i].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
 				parVerts[j * ClothMesh::numCols + i].Force = glm::vec3(0, 0, 0);
@@ -105,7 +105,7 @@ void PhysicsUpdate(float dt) {
 	float sphereY = 1 +rand () % 9;
 	float sphereZ = -4 + rand() % 8;
 
-	 if (counter >= 400) { //this is 20 seconds.
+	 if (counter >= 800) { //this is 20 seconds.
 		PhysicsInit();
 		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
 		counter = 0;
@@ -170,13 +170,13 @@ void PhysicsUpdate(float dt) {
 
 			if (i == 0 && j == 0) {
 
-				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, -4.5 + 0.5f);
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, -4.5 + 0.3f);
 				
 
 			}
 			else if (i == ClothMesh::numCols - 1 && j == 0) {
 
-				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, 1.f);
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, 1.7f);
 				
 
 			}
