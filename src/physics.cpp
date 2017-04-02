@@ -46,8 +46,8 @@ glm::vec3 * tempMesh;
 glm::vec3 * finalMesh; 
 glm::vec3 f;
 int counter = 0;
-const float ke = 3.1f; //rigidez
-const float kd = 3.1f; // dumping
+const float ke = 20.1f; //rigidez
+const float kd = 100.1f; // dumping
 class Particle {
 public:
 	void calculateForce(Particle nextP, float dist);
@@ -62,8 +62,7 @@ public:
 void Particle::calculateForce(Particle nextP, float dist) {
 	dump = kd * vel;
 	 // se iguala a sa força externa. Motius obvis
-	Force += -((ke*(glm::length(ActualPos - nextP.ActualPos)) - dist) + kd*glm::dot(vel - nextP.vel, (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)); 
-	// Provot // -kd*(glm::length(ActualPos - nextP.ActualPos) - dist)* ((ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)));
+	Force+= -((ke*(glm::length(ActualPos - nextP.ActualPos)) - dist) + kd*glm::dot(vel - nextP.vel, (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos));	 	// Provot // -kd*(glm::length(ActualPos - nextP.ActualPos) - dist)* ((ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)));
 	// slides //-((ke*(glm::length(ActualPos - nextP.ActualPos))- dist) + kd*glm::dot(vel - nextP.vel ,(ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos));	 
 }
 	Particle* parVerts;
