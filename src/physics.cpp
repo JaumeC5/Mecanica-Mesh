@@ -9,6 +9,18 @@ using namespace std;
 bool show_test_window = false;
 bool reset = false;
 
+bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost) { // Collision detector
+	float getPos;
+
+	getPos = ((glm::dot(n, Pt) + d) * (glm::dot(n, PtPost) + d));
+
+	if (getPos <= 0) {
+		return true;
+	}
+	else { return false; }
+
+}
+
 namespace Sphere {
 	extern void setupSphere(glm::vec3 pos = glm::vec3(5.f, 1.f, 0.f), float radius = 1.f);
 	extern void cleanupSphere();
@@ -37,7 +49,7 @@ void GUI() {
 	if (show_test_window) {//
 		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
 		ImGui::ShowTestWindow(&show_test_window);
-	}
+	}//a
 }
 
 glm::vec3 *currMesh;	
@@ -46,8 +58,8 @@ glm::vec3 * tempMesh;
 glm::vec3 * finalMesh; 
 glm::vec3 f;
 int counter = 0;
-const float ke = 20.1f; //rigidez
-const float kd = 100.1f; // dumping
+const float ke = 1.1f; //rigidez
+const float kd = 1.1f; // dumping
 class Particle {
 public:
 	void calculateForce(Particle nextP, float dist);
