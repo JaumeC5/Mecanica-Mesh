@@ -2,6 +2,7 @@
 #include <imgui\imgui_impl_glfw_gl3.h>
 #include <iostream>
 #include <glm\gtc\matrix_transform.hpp>
+#include <stdlib.h>
 #include <time.h>
 #include <ctime>
 #include <vector>
@@ -22,9 +23,7 @@ int Rtime;
 float sphereRadius;
 float distanceSprings;
 float ellogation;
-float sphereX;
-float sphereY;
-float sphereZ;
+
 glm::vec3 *currMesh;
 glm::vec3* lastMesh;
 glm::vec3 * tempMesh;
@@ -33,17 +32,20 @@ glm::vec3 f;
 glm::vec3 centreSphere;
 time_t theTime = time(0);
 float gravity;
-
+float sphereX;
+float sphereY;
+float sphereZ;
+float RandomRadiusSphere;
 float damp;
 
 int counter = 0;
 const float ke = 1; //rigidez
-//const float kd = 1.f; // dumping
+const float kd = 2.f; // dumping
 bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) { // Collision detector
 	float getPos;
 	getPos = ((glm::dot(n, Pt) + d) * (glm::dot(n, PtPost) + d));
 	if (getPos <= 0) {
-		cout << plane << ": true xd" << endl;
+		//cout << plane << ": true xd" << endl;
 		return true;
 	}
 	else { return false; }
@@ -57,8 +59,30 @@ float getTheAlpha(float a, float b, float c) {
 	if (res1 <= 1 && res1 >= 0) return res1;
 	if (res2 <= 1 && res2 >= 0) return res2;
 
+}  
+
+float getTheAlpha2(glm::vec3 position, glm::vec3 lastP) {
+
+	float a, b, c;
+
+	glm::vec3 direccio = (position - lastP);
+	direccio /= glm::length(direccio); // vector direcció normalitzat
+
+	a = pow(glm::length(direccio), 2);
+	b = 2 * glm::dot(direccio, lastP - centreSphere);
+	c = pow(glm::length(lastP - centreSphere), 2) - pow(RandomRadiusSphere, 2);
+	
+
+	float res1 = (-b + sqrt(b*b - 4 * a*c)) / (2 * a);
+	float res2 = (-b - sqrt(b*b - 4 * a*c)) / (2 * a);
+
+	//cout << res1 << "////" << res2 << endl;
+	if (res1 <= 1 && res1 >= 0) return res1;
+	if (res2 <= 1 && res2 >= 0) return res2;
 
 }
+
+
 namespace Sphere {
 	extern void setupSphere(glm::vec3 pos = glm::vec3(5.f, 1.f, 0.f), float radius = 1.f);
 	extern void cleanupSphere();
@@ -122,7 +146,6 @@ public:
 	glm::vec3 lastPos;
 	glm::vec3 vel;
 	glm::vec3 Force;
-	glm::vec3 dump;
 	float alpha;
 	int mass = 1;
 };
@@ -133,11 +156,28 @@ void Particle::calculateForce(Particle nextP, float dist) {
 }
 Particle* parVerts;
 
-void sphereCollision(glm::vec3 actPos, glm::vec3 nextPos, float r, glm::vec3 cS) {
+void sphereCollision(glm::vec3 lastPos, glm::vec3 actPos, float a, glm::vec3 cS) {
 
-	glm::vec3 Q = glm::vec3(0, 0, 0); // punt de contacte amb l'esfera
-	float alpha = 0.f;
-	Q = actPos - ((nextPos - actPos) * alpha);
+	
+	if (sqrt((glm::dot(actPos, centreSphere) * glm::dot(actPos, centreSphere))) <= RandomRadiusSphere) {
+		glm::vec3 Q = lastPos + (actPos - lastPos) * a;
+		glm::vec3 n = (Q - cS) / glm::normalize(Q - cS); //normal del pla creat tangent a l'esfera
+		float d = -glm::dot(n, Q); // d des pla
+		cout << "contact in ";
+	}
+	//cout << actPos.x << " " << actPos.y << " " << actPos.z << " " << endl;
+	cout << centreSphere.x << " " << centreSphere.y << " " << centreSphere.z << " " << endl;
+//cout << glm::length(actPos - centreSphere) << "/////" << RandomRadiusSphere << endl;
+	
+	
+}
+
+void PhysicsCleanup() {
+	delete[] currMesh;
+	delete[] lastMesh;
+	delete[] tempMesh;
+	delete[] finalMesh;
+
 }
 
 void PhysicsInit() {
@@ -154,10 +194,10 @@ void PhysicsInit() {
 	for (int j = 0; j < ClothMesh::numRows; j++) {
 		for (int i = 0; i < ClothMesh::numCols; i++) {
 			if (i == 0 && j == 0) {
-				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -9.5 + i*0.5f);
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, -4.5);
 			}
 			else if (i == ClothMesh::numCols - 1 && j == 0) {
-				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(1, 1, -9.5 + i*0.5f);
+				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, -4.5 + 1.7f);
 			}
 			currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);// distancia horitzontal i vertical entre nodes = 0.5. Distancia doble = 1. Distància diagonal = sqrt(0.5*0.5 + 0.5*0.5);
 			lastMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
@@ -170,43 +210,64 @@ void PhysicsInit() {
 			parVerts[j * ClothMesh::numCols + i].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
 			parVerts[j * ClothMesh::numCols + i].Force = glm::vec3(0, 0, 0);
 			parVerts[j * ClothMesh::numCols + i].vel = glm::vec3(0, 0, 0);
+			parVerts[j * ClothMesh::numCols + i].alpha = 0;
 
 			
 		}
 	}
+	cout << "Posició del node: " << parVerts[0].ActualPos.x << " " << parVerts[0].ActualPos.y << " " << parVerts[0].ActualPos.z << " " << endl;
+
+	sphereX = -4 + rand() % 8;
+	sphereY = 1 + rand() % 9;
+	sphereZ = -4 + rand() % 8;
+	centreSphere = glm::vec3(sphereX, sphereY, sphereZ);
+	RandomRadiusSphere = 0.5f + rand() % 3;
+	cout << "Centre: " << centreSphere.x << " " << centreSphere.y << " " << centreSphere.z << " " << endl << endl;
+	cout << "Radius: " << RandomRadiusSphere << endl;
+
 
 }
 
 void calculateForces(int i, int j) { // calculate the forces of every node
 	if (i < ClothMesh::numCols - 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i + 1))], distanceSprings); }
+
 	if (i > 0) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i - 1))], distanceSprings); }
+
 	if (i < ClothMesh::numCols - 2) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i + 2))], distanceSprings * 2); }
+
 	if (i > 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i - 2))], distanceSprings * 2); }
+
 	if (j < ClothMesh::numRows - 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j + 1) * ClothMesh::numCols + i)], distanceSprings); }
+
 	if (j > 0) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j - 1) * ClothMesh::numCols + i)], distanceSprings); }
+
 	if (j < ClothMesh::numRows - 2) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j + 2)* ClothMesh::numCols + i)], distanceSprings * 2); }
+
 	if (j > 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j - 2) * ClothMesh::numCols + i)], distanceSprings * 2); }
+
 	if (i < ClothMesh::numCols - 1 && j < ClothMesh::numRows - 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j + 1) * ClothMesh::numCols + (i + 1))], sqrt(pow(distanceSprings, 2) + pow(distanceSprings, 2))); }
+
 	if (i < ClothMesh::numCols - 1 && j > 0) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j - 1) * ClothMesh::numCols + (i + 1))], sqrt(pow(distanceSprings, 2) + pow(distanceSprings, 2))); }
+
 	if (i > 0 && j > 0) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j - 1) * ClothMesh::numCols + (i - 1))], sqrt(pow(distanceSprings, 2) + pow(distanceSprings, 2))); }
+
 	if (i > 0 && j < ClothMesh::numRows - 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[((j + 1) * ClothMesh::numCols + (i - 1))], sqrt(pow(distanceSprings, 2) + pow(distanceSprings, 2))); }
 }
 void resetAll()
 {
-	float sphereX = -4 + rand() % 8;
-	float sphereY = 1 + rand() % 9;
-	float sphereZ = -4 + rand() % 8;
-	float RandomRadiusSphere = 0.5f + rand() % 3;
+	
 
 	theTime++;
 	if (theTime > 370)
 	{
+		PhysicsCleanup();
 		PhysicsInit();
 		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
 		theTime = 0;
 	}
 	if (reset == true)
 	{
+		PhysicsCleanup();
 		PhysicsInit();
 		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
 		theTime = 0;
@@ -215,14 +276,15 @@ void resetAll()
 }
 void verletSprings(int i, int j, float dt)
 {
+	dt *= 2;
 	tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
 	if (i == 0 && j == 0) {
 
-		currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, -4.5 + 0.3f);
+		currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, -4.5);
 	}
 	else if (i == ClothMesh::numCols - 1 && j == 0) {
 
-		currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + 0.5f, 9.5, 1.7f);
+		currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 , 9.5, 1.7f);
 	}
 
 	else {
@@ -232,6 +294,7 @@ void verletSprings(int i, int j, float dt)
 		//cout << currMesh[0].x << endl;
 		finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + ((f + parVerts[(j*ClothMesh::numCols + i)].Force))*(dt*dt);
 		//colisons
+
 		//left plane
 		collisionLeft = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(1, 0, 0), 5, finalMesh[(j * ClothMesh::numCols + i)], 1);
 		//right
@@ -252,25 +315,22 @@ void verletSprings(int i, int j, float dt)
 
 		parVerts[(j * ClothMesh::numCols + i)].vel = (parVerts[(j * ClothMesh::numCols + i)].ActualPos - parVerts[(j * ClothMesh::numCols + i)].lastPos) / dt;
 
-		parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha(parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x + parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y + parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z,
+
+		parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha2(currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+
+		/*parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha(parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x + parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y + parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z,
 			2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*parVerts[(j * ClothMesh::numCols + i)].lastPos.x + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*parVerts[(j * ClothMesh::numCols + i)].lastPos.y + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*parVerts[(j * ClothMesh::numCols + i)].lastPos.z - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*sphereX - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*sphereY - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*sphereZ,
-			pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.x, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.y, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.z, 2) - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.x * sphereX - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.y * sphereY - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.z * sphereZ + pow(sphereX, 2) + pow(sphereY, 2) + pow(sphereZ, 2));
-	
-	
+			pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.x, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.y, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.z, 2) - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.x * sphereX - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.y * sphereY - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.z * sphereZ + pow(sphereX, 2) + pow(sphereY, 2) + pow(sphereZ, 2) - pow(RandomRadiusSphere, 2));
+	*/
+
 	}
 
 
 }
-void PhysicsCleanup() {
-	delete[] currMesh;
-	delete[] lastMesh;
-	delete[] tempMesh;
-	delete[] finalMesh;
 
-}
 void PhysicsUpdate(float dt) {
 	//TODO	
-	for (int i = 0; i < 10; i++) {
+	
 		for (int j = 0; j < ClothMesh::numRows; j++) {
 			for (int i = 0; i < ClothMesh::numCols; i++) {
 				verletSprings(i, j, dt);
@@ -278,10 +338,14 @@ void PhysicsUpdate(float dt) {
 				Rtime = glfwGetTime();
 			}
 		}
-	}
+	
 	resetAll();
+	sphereCollision(lastMesh[0], currMesh[0], parVerts[0].alpha, centreSphere);
+	//cout << "yolo"<<currMesh[0].x << " " << currMesh[0].y << " " << currMesh[0].z << " " << endl;
+
 	//reset
 	/*	cout << "RealTime: " << Rtime << endl;
 	std::cout << "C time: " << theTime << endl;*/
+	//cout << parVerts[0].alpha << endl;
 	ClothMesh::updateClothMesh(&currMesh[0].x);
 }
