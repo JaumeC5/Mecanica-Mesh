@@ -159,15 +159,15 @@ Particle* parVerts;
 void sphereCollision(glm::vec3 lastPos, glm::vec3 actPos, float a, glm::vec3 cS) {
 
 	
-	if (sqrt((glm::dot(actPos, centreSphere) * glm::dot(actPos, centreSphere))) <= RandomRadiusSphere) {
+	/*if (sqrt((glm::dot(actPos, centreSphere) * glm::dot(actPos, centreSphere))) <= RandomRadiusSphere) {
 		glm::vec3 Q = lastPos + (actPos - lastPos) * a;
 		glm::vec3 n = (Q - cS) / glm::normalize(Q - cS); //normal del pla creat tangent a l'esfera
 		float d = -glm::dot(n, Q); // d des pla
-		cout << "contact in ";
-	}
-	//cout << actPos.x << " " << actPos.y << " " << actPos.z << " " << endl;
-	cout << centreSphere.x << " " << centreSphere.y << " " << centreSphere.z << " " << endl;
-//cout << glm::length(actPos - centreSphere) << "/////" << RandomRadiusSphere << endl;
+		}*/,k
+
+	cout << glm::length(actPos - centreSphere) << endl;
+	if (glm::length(actPos - centreSphere) <= RandomRadiusSphere)
+		cout << "Eureka ";
 	
 	
 }
@@ -262,14 +262,15 @@ void resetAll()
 	{
 		PhysicsCleanup();
 		PhysicsInit();
-		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
+
+		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), RandomRadiusSphere);
 		theTime = 0;
 	}
 	if (reset == true)
 	{
 		PhysicsCleanup();
 		PhysicsInit();
-		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
+		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), RandomRadiusSphere);
 		theTime = 0;
 	}
 	centreSphere = glm::vec3(sphereX, sphereY, sphereZ);
@@ -318,6 +319,8 @@ void verletSprings(int i, int j, float dt)
 
 		parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha2(currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
 
+		sphereCollision(lastMesh[(j * ClothMesh::numCols + i)], currMesh[(j * ClothMesh::numCols + i)], parVerts[(j * ClothMesh::numCols + i)].alpha, centreSphere);
+
 		/*parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha(parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x + parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y + parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z,
 			2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*parVerts[(j * ClothMesh::numCols + i)].lastPos.x + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*parVerts[(j * ClothMesh::numCols + i)].lastPos.y + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*parVerts[(j * ClothMesh::numCols + i)].lastPos.z - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*sphereX - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*sphereY - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*sphereZ,
 			pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.x, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.y, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.z, 2) - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.x * sphereX - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.y * sphereY - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.z * sphereZ + pow(sphereX, 2) + pow(sphereY, 2) + pow(sphereZ, 2) - pow(RandomRadiusSphere, 2));
@@ -340,7 +343,8 @@ void PhysicsUpdate(float dt) {
 		}
 	
 	resetAll();
-	sphereCollision(lastMesh[0], currMesh[0], parVerts[0].alpha, centreSphere);
+	//sphereCollision(lastMesh[13 * 17], currMesh[13*17], parVerts[13 * 17].alpha, centreSphere);
+
 	//cout << "yolo"<<currMesh[0].x << " " << currMesh[0].y << " " << currMesh[0].z << " " << endl;
 
 	//reset
