@@ -19,21 +19,26 @@ bool collisionBack;
 bool collision;
 bool collisionSphere;
 int Rtime;
+float sphereRadius;
 float distanceSprings;
 float ellogation;
+float sphereX;
+float sphereY;
+float sphereZ;
 glm::vec3 *currMesh;
 glm::vec3* lastMesh;
 glm::vec3 * tempMesh;
 glm::vec3 * finalMesh;
 glm::vec3 f;
+glm::vec3 centreSphere;
 time_t theTime = time(0);
 float gravity;
 
 float damp;
 
 int counter = 0;
-const float ke = 1.f; //rigidez
-const float kd = 1.f; // dumping
+const float ke = 1; //rigidez
+//const float kd = 1.f; // dumping
 bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) { // Collision detector
 	float getPos;
 	getPos = ((glm::dot(n, Pt) + d) * (glm::dot(n, PtPost) + d));
@@ -43,7 +48,17 @@ bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plan
 	}
 	else { return false; }
 }
+float getTheAlpha(float a, float b, float c) {
 
+	float res1 = (-b + sqrt(b*b - 4 * a*c)) / (2 * a);
+	float res2 = (-b - sqrt(b*b - 4 * a*c)) / (2 * a);
+
+	//cout << res1 << "////" << res2 << endl;
+	if (res1 <= 1 && res1 >= 0) return res1;
+	if (res2 <= 1 && res2 >= 0) return res2;
+
+
+}
 namespace Sphere {
 	extern void setupSphere(glm::vec3 pos = glm::vec3(5.f, 1.f, 0.f), float radius = 1.f);
 	extern void cleanupSphere();
@@ -67,9 +82,9 @@ void GUI() {
 
 		if (ImGui::CollapsingHeader("Spring parameters"))
 		{
-			ImGui::SliderFloat("Damp Direct link Springs", &damp, 0, 2);
-			ImGui::SliderFloat("Damp Diagonal link Springs", &damp, 0, 2);
-			ImGui::SliderFloat("Damp Second link Springs", &damp, 0, 2);
+			ImGui::SliderFloat("Damp Direct link Springs", &damp, 0, 3);
+			ImGui::SliderFloat("Damp Diagonal link Springs", &damp, 0, 3);
+			ImGui::SliderFloat("Damp Second link Springs", &damp, 0, 3);
 			ImGui::SliderFloat("Initial Rest distance of the springs", &distanceSprings, 0.3, 0.7);
 			ImGui::SliderFloat("Max elogation", &ellogation, 0.5, 1);
 		}
@@ -99,6 +114,7 @@ public:
 	void regulateDist(Particle p) {
 		float d = glm::distance(ActualPos, p.ActualPos);
 		if (d < 0.5) {
+			// lo de la elongació
 		}
 	}
 	void calculateForce(Particle nextP, float dist);
@@ -107,6 +123,7 @@ public:
 	glm::vec3 vel;
 	glm::vec3 Force;
 	glm::vec3 dump;
+	float alpha;
 	int mass = 1;
 };
 void Particle::calculateForce(Particle nextP, float dist) {
@@ -120,12 +137,11 @@ void sphereCollision(glm::vec3 actPos, glm::vec3 nextPos, float r, glm::vec3 cS)
 
 	glm::vec3 Q = glm::vec3(0, 0, 0); // punt de contacte amb l'esfera
 	float alpha = 0.f;
-
 	Q = actPos - ((nextPos - actPos) * alpha);
 }
 
 void PhysicsInit() {
-	damp = 1.1f;
+	damp = 2.f;
 	reset = false;
 	Rtime = 0;
 	distanceSprings = 0.5f;
@@ -155,7 +171,7 @@ void PhysicsInit() {
 			parVerts[j * ClothMesh::numCols + i].Force = glm::vec3(0, 0, 0);
 			parVerts[j * ClothMesh::numCols + i].vel = glm::vec3(0, 0, 0);
 
-
+			
 		}
 	}
 
@@ -195,6 +211,7 @@ void resetAll()
 		Sphere::updateSphere(glm::vec3(sphereX, sphereY, sphereZ), 1);
 		theTime = 0;
 	}
+	centreSphere = glm::vec3(sphereX, sphereY, sphereZ);
 }
 void verletSprings(int i, int j, float dt)
 {
@@ -234,7 +251,14 @@ void verletSprings(int i, int j, float dt)
 		parVerts[(j * ClothMesh::numCols + i)].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
 
 		parVerts[(j * ClothMesh::numCols + i)].vel = (parVerts[(j * ClothMesh::numCols + i)].ActualPos - parVerts[(j * ClothMesh::numCols + i)].lastPos) / dt;
+
+		parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha(parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x + parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y + parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z,
+			2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*parVerts[(j * ClothMesh::numCols + i)].lastPos.x + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*parVerts[(j * ClothMesh::numCols + i)].lastPos.y + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*parVerts[(j * ClothMesh::numCols + i)].lastPos.z - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*sphereX - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*sphereY - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*sphereZ,
+			pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.x, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.y, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.z, 2) - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.x * sphereX - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.y * sphereY - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.z * sphereZ + pow(sphereX, 2) + pow(sphereY, 2) + pow(sphereZ, 2));
+	
+	
 	}
+
 
 }
 void PhysicsCleanup() {
