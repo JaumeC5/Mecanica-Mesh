@@ -41,6 +41,7 @@ float damp;
 int counter = 0;
 const float ke = 1; //rigidez
 const float kd = 2.f; // dumping
+
 bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) { // Collision detector
 	float getPos;
 	getPos = ((glm::dot(n, Pt) + d) * (glm::dot(n, PtPost) + d));
@@ -50,6 +51,21 @@ bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plan
 	}
 	else { return false; }
 }
+
+void collidePlane(glm::vec3 n, float d, glm::vec3 &pos, glm::vec3 &prevPos) {
+	glm::vec3 tempPos, tempPrevPos;
+	//std::cout << "Posicio	" << pos.x << "		" << pos.y << "		" << pos.z << endl;
+	//std::cout << "Posicio anterior 	" << prevPos.x << "		" << prevPos.y << "		" << prevPos.z << endl << endl << endl;
+	tempPos = pos - 2 * (glm::dot(pos, n) + d) * n;
+	tempPrevPos = prevPos - 2 * (glm::dot(prevPos, n) + d) * n;
+	//std::cout << "Posicio rebot	" << tempPos.x << "		" << tempPos.y << "		" << tempPos.z << endl;
+	//std::cout << "Posicio anterior rebot	" << tempPrevPos.x << "		" << tempPrevPos.y << "		" << tempPrevPos.z << endl;
+
+	pos = tempPos;
+	prevPos = tempPrevPos;
+}
+
+
 float getTheAlpha(float a, float b, float c) {
 
 	float res1 = (-b + sqrt(b*b - 4 * a*c)) / (2 * a);
@@ -163,11 +179,11 @@ void sphereCollision(glm::vec3 lastPos, glm::vec3 actPos, float a, glm::vec3 cS)
 		glm::vec3 Q = lastPos + (actPos - lastPos) * a;
 		glm::vec3 n = (Q - cS) / glm::normalize(Q - cS); //normal del pla creat tangent a l'esfera
 		float d = -glm::dot(n, Q); // d des pla
-		}*/,k
+		}*/
 
-	cout << glm::length(actPos - centreSphere) << endl;
-	if (glm::length(actPos - centreSphere) <= RandomRadiusSphere)
-		cout << "Eureka ";
+	//cout << glm::length(actPos - centreSphere) << endl;
+	//if (glm::length(actPos - centreSphere) <= RandomRadiusSphere)
+		//cout << "Eureka ";
 	
 	
 }
@@ -303,13 +319,17 @@ void verletSprings(int i, int j, float dt)
 		//up
 		collisionUp = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, -1, 0), 10, finalMesh[(j * ClothMesh::numCols + i)], 3);
 		//down
-		collisionDown = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 1, 0), 0, finalMesh[(j * ClothMesh::numCols + i)], 4);
+		collisionDown = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 1, 0), 0, finalMesh[(j * ClothMesh::numCols + i)], 4);
 		//front
 		collisionFront = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, -1), 5, finalMesh[(j * ClothMesh::numCols + i)], 5);
 		//back
 		collisionBack = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, 1), 5, finalMesh[(j * ClothMesh::numCols + i)], 6);
 
 		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)];
+
+		if (collisionDown) {
+			collidePlane(glm::vec3(0, 1, 0), 0, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+		}
 
 		parVerts[(j * ClothMesh::numCols + i)].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
 		parVerts[(j * ClothMesh::numCols + i)].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
