@@ -1,3 +1,8 @@
+//////////////////////
+//// LIFE IS GOOD ////
+//Toni Ferrari Juan///
+//////////////////////
+
 #include <imgui\imgui.h>
 #include <imgui\imgui_impl_glfw_gl3.h>
 #include <iostream>
@@ -199,7 +204,6 @@ void sphereCollision(glm::vec3 Q, glm::vec3 &actPos,glm::vec3 &lastPos,  glm::ve
 
 	if (glm::length(actPos - centreSphere) <= RandomRadiusSphere) { 
 
-		//cout << "life is good" << endl;
 		
 		// execute bounce
 		collidePlane(n, d, actPos, lastPos);
