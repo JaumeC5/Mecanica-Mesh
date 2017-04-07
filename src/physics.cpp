@@ -44,14 +44,11 @@ const float ke = 200; //rigidez
 const float kd = 30;// dumping
 
 
-bool collisionDetected = false;
-
 bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) { // Collision detector
 	float getPos;
 
 	getPos = ((glm::dot(n, Pt) + d) * (glm::dot(n, PtPost) + d));
-	if (getPos <= 0) {
-		//cout << plane << ": true xd" << endl;
+	if (getPos <= 0){
 		return true;
 	}
 
@@ -59,17 +56,17 @@ bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plan
 }
 
 void collidePlane(glm::vec3 n, float d, glm::vec3 &pos, glm::vec3 &prevPos) {
-	glm::vec3 tempPos, tempPrevPos;
-	//std::cout << "Posicio	" << pos.x << "		" << pos.y << "		" << pos.z << endl;
-	//std::cout << "Posicio anterior 	" << prevPos.x << "		" << prevPos.y << "		" << prevPos.z << endl << endl << endl;
-	tempPos = pos - 2 * (glm::dot(pos, n) + d) * n;
-	tempPrevPos = prevPos - 2 * (glm::dot(prevPos, n) + d) * n;
-	//std::cout << "Posicio rebot	" << tempPos.x << "		" << tempPos.y << "		" << tempPos.z << endl;
-	//std::cout << "Posicio anterior rebot	" << tempPrevPos.x << "		" << tempPrevPos.y << "		" << tempPrevPos.z << endl;
 
-	pos = tempPos;
-	prevPos = tempPrevPos;
+	/*std::cout << "Posicio anterior        " << prevPos.y << endl;
+	std::cout << "Posicio actual          " << pos.y << endl;*/
+	
+	pos = pos - 2 * (glm::dot(pos, n) + d) * n;
+	prevPos = prevPos - 2 * (glm::dot(prevPos, n) + d) * n;
+
+	/*std::cout << "Posicio anterior rebot  " << tempPrevPos.y << endl;
+	std::cout << "Posicio actual rebot	  " << tempPos.y << endl << endl;*/
 }
+
 
 float getTheAlpha(float a, float b, float c) { // test 1
 
@@ -197,9 +194,6 @@ void sphereCollision(glm::vec3 lastPos, glm::vec3 actPos, float a, glm::vec3 cS)
 
 }
 
-// Jaumecrack
-
-
 void PhysicsCleanup() {
 	delete[] currMesh;
 	delete[] lastMesh;
@@ -290,8 +284,6 @@ void calculateForces(int i, int j) { // calculate the forces of every node
 }
 void resetAll()
 {
-
-
 	theTime++;
 	if (theTime > 370)
 	{
@@ -323,13 +315,17 @@ void verletSprings(int i, int j, float dt)
 		currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, 1.7f);
 	}
 
-	else {
+	else{
+
+		if (j == 17 && i == 13) {
+			cout << "pre: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl;
+		}
+
 		lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)]; // posició anterior
+			
+		
 
-																						 //posició final
 		finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + (parVerts[(j*ClothMesh::numCols + i)].Force)*(dt*dt);
-
-		//colisons
 
 		//left plane
 		collisionLeft = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(1, 0, 0), 5, finalMesh[(j * ClothMesh::numCols + i)], 1);
@@ -344,21 +340,27 @@ void verletSprings(int i, int j, float dt)
 		//back
 		collisionBack = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, 1), 5, finalMesh[(j * ClothMesh::numCols + i)], 6);
 
+		
 
-		//cout << parVerts[j * ClothMesh::numCols + i].collided << endl;
-		if (parVerts[j * ClothMesh::numCols + i].collided == true) {
+		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)]; // posició actual actualitzada
+
+		if (j == 17 && i == 13) {
+			cout << "act: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl;
+		}
+		
+		if (currMesh[(j * ClothMesh::numCols + i)].y < 0) {
 			if (collisionDown) {
 				collidePlane(glm::vec3(0, 1, 0), 0, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
-				//	cout << "collided" << endl;
-				parVerts[j * ClothMesh::numCols + i].collided = false;
+				/*cout << lastMesh[13 * 17].y << endl;
+				cout << currMesh[13 * 17].y << endl;*/
 			}
-
 		}
-
-		//fer q la posicio previa si es menos  de 0 no fagi les colisions. 
-		//more la posicio previa ja canviada a 0.001 i sumarli lo q hi ha entre 0.001 i la posicio que tocava quan estava a 0.001 a la posicio proxima.
-
-		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)]; // podició actual actualitzada
+		if (j == 17 && i == 13) {
+			cout << "pst: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl << endl;
+		}
+		//el resultat dona que quan es la anterior pasa a un valor negatiu i la posterior a un valor positiu, la particula segueix baixant en lloc de pujar.
+		//quan esta aixi \ baixa, quan esta aixi / baixa tambe
+		
 
 		parVerts[(j * ClothMesh::numCols + i)].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
 		parVerts[(j * ClothMesh::numCols + i)].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
@@ -394,7 +396,7 @@ void PhysicsUpdate(float dt) {
 		}
 	}
 	//cout << "last " << lastMesh[1].y << endl;
-	//cout << "actual " << currMesh[1].y << endl;	//cout << "actual " << currMesh[1].y << endl;
+	//cout << "anterior " << lastMesh[1].y;	cout << " actual " << currMesh[1].y << endl;
 	//cout  <<parVerts[1].lastPos.y - parVerts[1].ActualPos.y << endl;
 
 	resetAll();
