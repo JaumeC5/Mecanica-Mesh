@@ -133,7 +133,7 @@ void GUI() {
 			ImGui::SliderFloat("Constant Second link Springs", &Ke, 800, 1000);
 
 			ImGui::SliderFloat("Initial Rest distance of the springs", &distanceSprings, 0.3, 0.7);
-			ImGui::SliderFloat("Max elogation", &ellogation, 0.5, 1);
+			ImGui::SliderFloat("Max elogation", &ellogation, -0.5f, 0.5f);
 		}
 		if (ImGui::CollapsingHeader("Collisions"))
 		{
@@ -158,12 +158,7 @@ void GUI() {
 
 class Particle {
 public:
-	void regulateDist(Particle p) {
-		float d = glm::distance(ActualPos, p.ActualPos);
-		if (d > 0.5 +ellogation) {
-		
-		}
-	}
+	void regulateDist(Particle p);
 	void calculateForce(Particle nextP, float dist);
 	glm::vec3 ActualPos;
 	glm::vec3 lastPos;
@@ -183,6 +178,13 @@ void Particle::calculateForce(Particle nextP, float dist) {
 	glm::vec3 res = -subResult * normalized;
 	Force += res;
 	// slides //-((ke*(glm::length(ActualPos - nextP.ActualPos))- dist) + kd*glm::dot(vel - nextP.vel ,(ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos));	 
+}
+
+void Particle::regulateDist(Particle p) {
+	float d = glm::distance(ActualPos, p.ActualPos);
+	float dMax = d + ellogation;
+	float difference = d - dMax;
+
 }
 Particle* parVerts;
 
@@ -210,6 +212,7 @@ void PhysicsCleanup() {
 void PhysicsInit() {
 	Kd = 50;
 	Ke = 900;
+	ellogation = 0;
 	reset = false;
 	Rtime = 0;
 	distanceSprings = 0.5f;
@@ -391,7 +394,7 @@ void verletSprings(int i, int j, float dt)
 		2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*parVerts[(j * ClothMesh::numCols + i)].lastPos.x + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*parVerts[(j * ClothMesh::numCols + i)].lastPos.y + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*parVerts[(j * ClothMesh::numCols + i)].lastPos.z - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*sphereX - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*sphereY - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*sphereZ,
 		pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.x, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.y, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.z, 2) - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.x * sphereX - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.y * sphereY - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.z * sphereZ + pow(sphereX, 2) + pow(sphereY, 2) + pow(sphereZ, 2) - pow(RandomRadiusSphere, 2));
 		*/
-
+		//parVerts[(j * ClothMesh::numCols + i)].regulateDist(parVerts[(j + 1 * ClothMesh::numCols + i)]);
 	}
 
 
