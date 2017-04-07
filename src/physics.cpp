@@ -77,26 +77,27 @@ float getTheAlpha(float a, float b, float c) { // test 1
 	if (res1 <= 1 && res1 >= 0) return res1;
 	if (res2 <= 1 && res2 >= 0) return res2;
 
-}  //
+}  
 
-float getTheAlpha2(glm::vec3 position, glm::vec3 lastP) { // test 2 possible working
+glm::vec3 getQ(glm::vec3 position, glm::vec3 lastP, glm::vec3 cS, float r) { 
 
-	float a, b, c;
+	float a, b, c, alpha = 0;
+	glm::vec3 dir = glm::normalize(position - lastP); // vector direcció normalitzat
+	a = glm::dot(dir, dir); // esto = 1
+	b = 2 * glm::dot(dir, lastP - cS);
+	c = glm::dot(lastP - cS, lastP - cS) - r*r;
 
-	glm::vec3 direccio = (position - lastP);
-	direccio /= glm::length(direccio); // vector direcció normalitzat
+	float res1 = (-b + sqrt(pow(b, 2) - 4*a*c)) / (2 * a);
+	float res2 = (-b - sqrt(pow(b, 2) - 4*a*c)) / (2 * a);
 
-	a = pow(glm::length(direccio), 2);
-	b = 2 * glm::dot(direccio, lastP - centreSphere);
-	c = pow(glm::length(lastP - centreSphere), 2) - pow(RandomRadiusSphere, 2);
+	if (res1 <= 1 && res1 >= 0) alpha = res1;
+	if (res2 <= 1 && res2 >= 0) alpha = res2;
 
 
-	float res1 = (-b + sqrt(b*b - 4 * a*c)) / (2 * a);
-	float res2 = (-b - sqrt(b*b - 4 * a*c)) / (2 * a);
-
-	//cout << res1 << "////" << res2 << endl;
-	if (res1 <= 1 && res1 >= 0) return res1;
-	if (res2 <= 1 && res2 >= 0) return res2;
+	glm::vec3 Q = lastP + (position - lastP)*alpha;
+	
+	return Q;
+	
 
 }
 
@@ -128,9 +129,9 @@ void GUI() {
 			ImGui::SliderFloat("Damp Diagonal link Springs", &Kd, 47, 53);
 			ImGui::SliderFloat("Damp Second link Springs", &Kd, 47, 53);
 
-			ImGui::SliderFloat("Constant Direct link Springs", &Ke, 800, 1000);
-			ImGui::SliderFloat("Consant Diagonal link Springs", &Ke, 800, 1000);
-			ImGui::SliderFloat("Constant Second link Springs", &Ke, 800, 1000);
+			ImGui::SliderFloat("Constant Direct link Springs", &Ke, 0, 1000);
+			ImGui::SliderFloat("Consant Diagonal link Springs", &Ke, 0, 1000);
+			ImGui::SliderFloat("Constant Second link Springs", &Ke, 0, 1000);
 
 			ImGui::SliderFloat("Initial Rest distance of the springs", &distanceSprings, 0.3, 0.7);
 			ImGui::SliderFloat("Max elogation", &ellogation, -0.5f, 0.5f);
@@ -140,7 +141,6 @@ void GUI() {
 			ImGui::Checkbox("Use collisions", &collision);
 			ImGui::Checkbox("Use Sphere collider", &collisionSphere);
 		}
-		//0
 		//TODO
 	}
 
@@ -164,6 +164,8 @@ public:
 	glm::vec3 lastPos;
 	glm::vec3 vel;
 	glm::vec3 Force;
+	glm::vec3 Q;
+
 	bool collided = true;
 	bool calculated = false;
 	float alpha;
@@ -188,14 +190,20 @@ void Particle::regulateDist(Particle p) {
 }
 Particle* parVerts;
 
-void sphereCollision(glm::vec3 lastPos, glm::vec3 actPos, float a, glm::vec3 cS) {
+void sphereCollision(glm::vec3 Q, glm::vec3 &actPos,glm::vec3 &lastPos,  glm::vec3 cS) {
 
-	if (glm::length(actPos - centreSphere) <= RandomRadiusSphere) { //works
+	glm::vec3 n = glm::normalize(Q - cS);
+	//cout << n.x << " " << n.y << " " <<  n.z << " " << endl;
 
-		glm::vec3 Q = lastPos + (actPos - lastPos) * a;
-		cout << Q.x << " " << Q.y << " " << Q.z << " " << endl;
-		glm::vec3 n = (Q - cS) / glm::normalize(Q - cS); //normal del pla creat tangent a l'esfera
-		float d = -glm::dot(n, Q);
+	float d = -glm::dot(n, Q);
+
+	if (glm::length(actPos - centreSphere) <= RandomRadiusSphere) { 
+
+		//cout << "life is good" << endl;
+		
+		// execute bounce
+		collidePlane(n, d, actPos, lastPos);
+
 	}
 
 
@@ -249,7 +257,7 @@ void PhysicsInit() {
 	cout << "Posició del node: " << parVerts[0].ActualPos.x << " " << parVerts[0].ActualPos.y << " " << parVerts[0].ActualPos.z << " " << endl;
 
 	sphereX = -4 + rand() % 8;
-	sphereY = 1 + rand() % 9;
+	sphereY = 0 + rand() % 9;
 	sphereZ = -4 + rand() % 8;
 	centreSphere = glm::vec3(sphereX, sphereY, sphereZ);
 	RandomRadiusSphere = 0.5f + rand() % 3;
@@ -371,30 +379,22 @@ void verletSprings(int i, int j, float dt)
 		if (collisionBack) {
 			collidePlane(glm::vec3(0, 0, 1), 5, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
 		}
-		
+
+		parVerts[(j * ClothMesh::numCols + i)].Q = getQ(lastMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)], centreSphere, RandomRadiusSphere);
+		sphereCollision(parVerts[(j * ClothMesh::numCols + i)].Q, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)], centreSphere);
 	
-		if (j == 17 && i == 13) {
-			//cout << "pst: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl << endl;
-		}
-		//el resultat dona que quan es la anterior pasa a un valor negatiu i la posterior a un valor positiu, la particula segueix baixant en lloc de pujar.
-		//quan esta aixi \ baixa, quan esta aixi / baixa tambe
 		
 
 		parVerts[(j * ClothMesh::numCols + i)].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
 		parVerts[(j * ClothMesh::numCols + i)].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
 		parVerts[(j * ClothMesh::numCols + i)].vel = (parVerts[(j * ClothMesh::numCols + i)].ActualPos - parVerts[(j * ClothMesh::numCols + i)].lastPos) / dt;
 
+		
 
-		parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha2(currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
-
-		//sphereCollision(lastMesh[(j * ClothMesh::numCols + i)], currMesh[(j * ClothMesh::numCols + i)], parVerts[(j * ClothMesh::numCols + i)].alpha, centreSphere);
-
-		//parVerts[(j*ClothMesh::numCols + i)].Force = glm::vec3(0.0f, 0.0f, 0.0f);
 		/*parVerts[(j * ClothMesh::numCols + i)].alpha = getTheAlpha(parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x + parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y + parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z,
 		2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*parVerts[(j * ClothMesh::numCols + i)].lastPos.x + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*parVerts[(j * ClothMesh::numCols + i)].lastPos.y + 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*parVerts[(j * ClothMesh::numCols + i)].lastPos.z - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.x - parVerts[(j * ClothMesh::numCols + i)].lastPos.x)*sphereX - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.y - parVerts[(j * ClothMesh::numCols + i)].lastPos.y)*sphereY - 2 * (parVerts[(j * ClothMesh::numCols + i)].ActualPos.z - parVerts[(j * ClothMesh::numCols + i)].lastPos.z)*sphereZ,
 		pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.x, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.y, 2) + pow(parVerts[(j * ClothMesh::numCols + i)].lastPos.z, 2) - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.x * sphereX - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.y * sphereY - 2 * parVerts[(j * ClothMesh::numCols + i)].lastPos.z * sphereZ + pow(sphereX, 2) + pow(sphereY, 2) + pow(sphereZ, 2) - pow(RandomRadiusSphere, 2));
-		*/
-		//parVerts[(j * ClothMesh::numCols + i)].regulateDist(parVerts[(j + 1 * ClothMesh::numCols + i)]);
+		//parVerts[(j * ClothMesh::numCols + i)].regulateDist(parVerts[(j + 1 * ClothMesh::numCols + i)]);*/
 	}
 
 
@@ -403,6 +403,7 @@ void verletSprings(int i, int j, float dt)
 void PhysicsUpdate(float dt) {
 	//
 	dt /= 10;
+	sphereCollision(parVerts[0].Q, lastMesh[0], lastMesh[0], centreSphere);
 
 	for (int x = 0; x < 10; x++) {
 		for (int j = 0; j < ClothMesh::numRows; j++) {
@@ -413,18 +414,8 @@ void PhysicsUpdate(float dt) {
 			}
 		}
 	}
-	//cout << "last " << lastMesh[1].y << endl;
-	//cout << "anterior " << lastMesh[1].y;	cout << " actual " << currMesh[1].y << endl;
-	//cout  <<parVerts[1].lastPos.y - parVerts[1].ActualPos.y << endl;
 
 	resetAll();
-	sphereCollision(lastMesh[13 * 17], currMesh[13 * 17], parVerts[13 * 17].alpha, centreSphere);
 
-	//cout <<parVerts[1].act << " " << parVerts[1].Force.y << " " << parVerts[1].Force.z << " " << endl;
-
-	//reset
-		/*cout << "RealTime: " << Rtime << endl;
-	std::cout << "C time: " << theTime << endl;*/
-	//cout << parVerts[0].alpha << endl;
 	ClothMesh::updateClothMesh(&currMesh[0].x);
 }// jaumecrack
