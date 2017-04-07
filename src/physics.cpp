@@ -37,8 +37,8 @@ float sphereX;
 float sphereY;
 float sphereZ;
 float RandomRadiusSphere;
-float damp;
-
+float Ke;
+float Kd;
 int counter = 0;
 const float ke = 900; //rigidez
 const float kd = 50;// dumping
@@ -124,9 +124,14 @@ void GUI() {
 
 		if (ImGui::CollapsingHeader("Spring parameters"))
 		{
-			ImGui::SliderFloat("Damp Direct link Springs", &damp, 0, 3);
-			ImGui::SliderFloat("Damp Diagonal link Springs", &damp, 0, 3);
-			ImGui::SliderFloat("Damp Second link Springs", &damp, 0, 3);
+			ImGui::SliderFloat("Damp Direct link Springs", &Kd, 47, 53);
+			ImGui::SliderFloat("Damp Diagonal link Springs", &Kd, 47, 53);
+			ImGui::SliderFloat("Damp Second link Springs", &Kd, 47, 53);
+
+			ImGui::SliderFloat("Constant Direct link Springs", &Ke, 800, 1000);
+			ImGui::SliderFloat("Consant Diagonal link Springs", &Ke, 800, 1000);
+			ImGui::SliderFloat("Constant Second link Springs", &Ke, 800, 1000);
+
 			ImGui::SliderFloat("Initial Rest distance of the springs", &distanceSprings, 0.3, 0.7);
 			ImGui::SliderFloat("Max elogation", &ellogation, 0.5, 1);
 		}
@@ -155,8 +160,8 @@ class Particle {
 public:
 	void regulateDist(Particle p) {
 		float d = glm::distance(ActualPos, p.ActualPos);
-		if (d > 0.5) {
-			// lo de la elongació
+		if (d > 0.5 +ellogation) {
+		
 		}
 	}
 	void calculateForce(Particle nextP, float dist);
@@ -174,7 +179,7 @@ void Particle::calculateForce(Particle nextP, float dist) {
 	float d = glm::length(ActualPos - nextP.ActualPos);//Force += -((ke*(glm::length(ActualPos - nextP.ActualPos)) - dist) + kd*(glm::dot(vel - nextP.vel, (ActualPos - nextP.ActualPos))) / (glm::length(ActualPos - nextP.ActualPos))) * (ActualPos - nextP.ActualPos) / (glm::normalize(ActualPos - nextP.ActualPos));	 	// Provot // -kd*(glm::length(ActualPos - nextP.ActualPos) - dist)* ((ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos)));
 	glm::vec3 speed = vel - nextP.vel;
 	glm::vec3 normalized = glm::normalize(ActualPos - nextP.ActualPos);
-	float subResult = ke*(d - dist) + glm::dot(kd*speed, normalized);
+	float subResult = Ke*(d - dist) + glm::dot(Kd*speed, normalized);
 	glm::vec3 res = -subResult * normalized;
 	Force += res;
 	// slides //-((ke*(glm::length(ActualPos - nextP.ActualPos))- dist) + kd*glm::dot(vel - nextP.vel ,(ActualPos - nextP.ActualPos)/(glm::length(ActualPos - nextP.ActualPos)))) * (ActualPos - nextP.ActualPos) / (glm::length(ActualPos - nextP.ActualPos));	 
@@ -203,7 +208,8 @@ void PhysicsCleanup() {
 }
 
 void PhysicsInit() {
-	damp = 2.f;
+	Kd = 50;
+	Ke = 900;
 	reset = false;
 	Rtime = 0;
 	distanceSprings = 0.5f;
@@ -285,7 +291,7 @@ void calculateForces(int i, int j) { // calculate the forces of every node
 void resetAll()
 {
 	theTime++;
-	if (theTime > 370)
+	if (theTime > 242)
 	{
 		PhysicsCleanup();
 		PhysicsInit();
@@ -414,7 +420,7 @@ void PhysicsUpdate(float dt) {
 	//cout <<parVerts[1].act << " " << parVerts[1].Force.y << " " << parVerts[1].Force.z << " " << endl;
 
 	//reset
-	/*	cout << "RealTime: " << Rtime << endl;
+		/*cout << "RealTime: " << Rtime << endl;
 	std::cout << "C time: " << theTime << endl;*/
 	//cout << parVerts[0].alpha << endl;
 	ClothMesh::updateClothMesh(&currMesh[0].x);
