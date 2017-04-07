@@ -40,8 +40,8 @@ float RandomRadiusSphere;
 float damp;
 
 int counter = 0;
-const float ke = 200; //rigidez
-const float kd = 30;// dumping
+const float ke = 900; //rigidez
+const float kd = 50;// dumping
 
 
 bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) { // Collision detector
@@ -60,8 +60,8 @@ void collidePlane(glm::vec3 n, float d, glm::vec3 &pos, glm::vec3 &prevPos) {
 	/*std::cout << "Posicio anterior        " << prevPos.y << endl;
 	std::cout << "Posicio actual          " << pos.y << endl;*/
 	
-	pos = pos - 2 * (glm::dot(pos, n) + d) * n;
-	prevPos = prevPos - 2 * (glm::dot(prevPos, n) + d) * n;
+	pos = pos - (1 + 0.8f) * (glm::dot(pos, n) + d) * n;
+	prevPos = prevPos - (1 + 0.8f) * (glm::dot(prevPos, n) + d) * n;
 
 	/*std::cout << "Posicio anterior rebot  " << tempPrevPos.y << endl;
 	std::cout << "Posicio actual rebot	  " << tempPos.y << endl << endl;*/
@@ -222,9 +222,9 @@ void PhysicsInit() {
 				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, -4.5 + 1.7f);
 			}
 			currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);// distancia horitzontal i vertical entre nodes = 0.5. Distancia doble = 1. Distància diagonal = sqrt(0.5*0.5 + 0.5*0.5);
-			lastMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
-			tempMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
-			finalMesh[(j * ClothMesh::numCols + i)] = glm::vec3(0, 0, 0);
+			lastMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
+			tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
+			finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
 
 			f = glm::vec3(0, -9.81, 0); // força externa, sa gravetat
 
@@ -253,7 +253,7 @@ void PhysicsInit() {
 void calculateForces(int i, int j) { // calculate the forces of every node
 									 //
 
-									 //parVerts[(j * ClothMesh::numCols + i)].Force = f;
+	parVerts[(j * ClothMesh::numCols + i)].Force = f;
 
 	if (i < ClothMesh::numCols - 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i + 1))], distanceSprings); }
 
@@ -305,7 +305,6 @@ void resetAll()
 void verletSprings(int i, int j, float dt)
 {
 
-	tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)]; // posició actual
 	if (i == 0 && j == 0) {
 
 		currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, -4.5);
@@ -318,45 +317,55 @@ void verletSprings(int i, int j, float dt)
 	else{
 
 		if (j == 17 && i == 13) {
-			cout << "pre: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl;
+			//cout << "pre: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl;
 		}
 
-		lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)]; // posició anterior
-			
-		
+		tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)]; // temporal. Emmagametza sa anterior currMesh
+		//cout << currMesh[(j*ClothMesh::numCols + i)].y - lastMesh[(j*ClothMesh::numCols + i)].y << endl; // dona 0, perque currMesh - currMesh
 
 		finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + (parVerts[(j*ClothMesh::numCols + i)].Force)*(dt*dt);
+		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)]; // posició actual actualitzada
+		lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)]; // posició anterior, que ara conté currMesh
+
 
 		//left plane
-		collisionLeft = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(1, 0, 0), 5, finalMesh[(j * ClothMesh::numCols + i)], 1);
+		collisionLeft = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(1, 0, 0), 5, currMesh[(j * ClothMesh::numCols + i)], 1);
 		//right
-		collisionRight = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(-1, 0, 0), 5, finalMesh[(j * ClothMesh::numCols + i)], 2);
+		collisionRight = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(-1, 0, 0), 5, currMesh[(j * ClothMesh::numCols + i)], 2);
 		//up
-		collisionUp = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, -1, 0), 10, finalMesh[(j * ClothMesh::numCols + i)], 3);
+		collisionUp = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, -1, 0), 10, currMesh[(j * ClothMesh::numCols + i)], 3);
 		//down
-		collisionDown = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 1, 0), 0, finalMesh[(j * ClothMesh::numCols + i)], 4);
+		collisionDown = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 1, 0), 0, currMesh[(j * ClothMesh::numCols + i)], 4);
 		//front
-		collisionFront = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, -1), 5, finalMesh[(j * ClothMesh::numCols + i)], 5);
+		collisionFront = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, -1), 5, currMesh[(j * ClothMesh::numCols + i)], 5);
 		//back
-		collisionBack = hasCollision(currMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, 1), 5, finalMesh[(j * ClothMesh::numCols + i)], 6);
-
-		
-
-		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)]; // posició actual actualitzada
-
+		collisionBack = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, 1), 5, currMesh[(j * ClothMesh::numCols + i)], 6);
 		if (j == 17 && i == 13) {
-			cout << "act: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl;
+			//cout << "act: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl;
 		}
 		
-		if (currMesh[(j * ClothMesh::numCols + i)].y < 0) {
-			if (collisionDown) {
-				collidePlane(glm::vec3(0, 1, 0), 0, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
-				/*cout << lastMesh[13 * 17].y << endl;
-				cout << currMesh[13 * 17].y << endl;*/
-			}
+		if (collisionLeft) {
+			collidePlane(glm::vec3(1, 0, 0), 5, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
 		}
+		if (collisionRight) {
+			collidePlane(glm::vec3(-1, 1, 0), 5, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+		}
+		if (collisionUp) {
+			collidePlane(glm::vec3(0, -1, 0), 10, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+		}
+		if (collisionDown) {
+			collidePlane(glm::vec3(0, 1, 0), 0, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+		}
+		if (collisionFront) {
+			collidePlane(glm::vec3(0, 0, -1), 5, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+		}
+		if (collisionBack) {
+			collidePlane(glm::vec3(0, 0, 1), 5, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
+		}
+		
+	
 		if (j == 17 && i == 13) {
-			cout << "pst: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl << endl;
+			//cout << "pst: " << lastMesh[(j * ClothMesh::numCols + i)].y << " // " << currMesh[(j * ClothMesh::numCols + i)].y << " ----- " << " i: " << i << "  j: " << j << endl << endl;
 		}
 		//el resultat dona que quan es la anterior pasa a un valor negatiu i la posterior a un valor positiu, la particula segueix baixant en lloc de pujar.
 		//quan esta aixi \ baixa, quan esta aixi / baixa tambe
