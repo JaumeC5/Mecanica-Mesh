@@ -270,7 +270,7 @@ void calculateForces(int i, int j) { // calculate the forces of every node
 void resetAll()
 {
 	theTime++;
-	if (theTime > 305) //its 20 seconds.
+	if (theTime > 310) //its 20 seconds.
 	{
 		PhysicsCleanup();
 		PhysicsInit();
