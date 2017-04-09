@@ -14,41 +14,46 @@
 #include <../include/GLFW/glfw3.h>
 using namespace std;
 bool show_test_window = false;
+
+// Helps to reset the system
 bool reset = false;
 
+// Collision detectors
 bool collisionLeft;
 bool collisionRight;
 bool collisionUp;
 bool collisionDown;
 bool collisionFront;
 bool collisionBack;
-bool collision;
-bool collisionSphere;
 int Rtime;
-float sphereRadius;
 float distanceSprings;
 float ellogation;
 
-
+// Positions
 glm::vec3 *currMesh;
 glm::vec3* lastMesh;
 glm::vec3 * tempMesh;
 glm::vec3 * finalMesh;
+
+// External Force
 glm::vec3 f;
+
+// Sphere things
 glm::vec3 centreSphere;
-time_t theTime = time(0);
-float gravity;
+float RandomRadiusSphere;
 float sphereX;
 float sphereY;
 float sphereZ;
-float RandomRadiusSphere;
-float Ke;
-float Kd;
-int counter = 0;
-const float ke = 900; //rigidez
-const float kd = 50;// dumping
 
-bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) { // Collision detector
+time_t theTime = time(0);
+
+// Constants
+float Ke = 900;
+float Kd = 50;
+
+// Collision detector
+
+bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plane) {
 
 	float getPos;
 	getPos = ((glm::dot(n, Pt) + d) * (glm::dot(n, PtPost) + d));
@@ -56,14 +61,17 @@ bool hasCollision(glm::vec3 Pt, glm::vec3 n, float d, glm::vec3 PtPost, int plan
 	else { return false; }
 }
 
-void collidePlane(glm::vec3 n, float d, glm::vec3 &pos, glm::vec3 &prevPos) { //Bounce
+// Bounce
+
+void collidePlane(glm::vec3 n, float d, glm::vec3 &pos, glm::vec3 &prevPos) { 
 
 	pos = pos - (1 + 0.8f) * (glm::dot(pos, n) + d) * n;
 	prevPos = prevPos - (1 + 0.8f) * (glm::dot(prevPos, n) + d) * n;
 }
 
-float getTheAlpha(float a, float b, float c) { //getting alpha
+// Getting alpha - obsolet ( 1st method used to calculate contact point with the sphere )
 
+float getTheAlpha(float a, float b, float c) { 
 	float res1 = (-b + sqrt(b*b - 4 * a*c)) / (2 * a);
 	float res2 = (-b - sqrt(b*b - 4 * a*c)) / (2 * a);
 
@@ -72,7 +80,9 @@ float getTheAlpha(float a, float b, float c) { //getting alpha
 
 }  
 
-glm::vec3 getQ(glm::vec3 position, glm::vec3 lastP, glm::vec3 cS, float r) { 
+// Now that's good. Getting the point of contact between particle and the Sphere
+
+glm::vec3 getQ(glm::vec3 position, glm::vec3 lastP, glm::vec3 cS, float r) {
 
 	float a, b, c, alpha = 0;
 	glm::vec3 dir = glm::normalize(position - lastP);
@@ -111,13 +121,13 @@ void GUI() {
 		}
 		if (ImGui::CollapsingHeader("Spring parameters"))
 		{
-			ImGui::SliderFloat("Damp Direct link Springs", &Kd, 47, 53);
-			ImGui::SliderFloat("Damp Diagonal link Springs", &Kd, 47, 53);
-			ImGui::SliderFloat("Damp Second link Springs", &Kd, 47, 53);
+			ImGui::SliderFloat("Damp Direct link Springs", &Kd, 1, 53);
+			ImGui::SliderFloat("Damp Diagonal link Springs", &Kd, 1, 53);
+			ImGui::SliderFloat("Damp Second link Springs", &Kd, 1, 53);
 
-			ImGui::SliderFloat("Constant Direct link Springs", &Ke, 800, 1000);
-			ImGui::SliderFloat("Consant Diagonal link Springs", &Ke, 800, 1000);
-			ImGui::SliderFloat("Constant Second link Springs", &Ke, 800, 1000);
+			ImGui::SliderFloat("Constant Direct link Springs", &Ke, 0, 1000);
+			ImGui::SliderFloat("Consant Diagonal link Springs", &Ke, 0, 1000);
+			ImGui::SliderFloat("Constant Second link Springs", &Ke,0, 1000);
 
 			ImGui::SliderFloat("Initial Rest distance of the springs", &distanceSprings, 0.3, 0.7);
 			ImGui::SliderFloat("Max elogation", &ellogation, -0.5, 0.5);
@@ -151,6 +161,8 @@ public:
 	int mass = 1;
 };
 
+// The formula that allows to get the force of every paticle
+
 void Particle::calculateForce(Particle nextP, float dist) {
 
 	float d = glm::length(ActualPos - nextP.ActualPos);
@@ -174,14 +186,19 @@ void Particle::regulateDist(Particle p) {
 		p.ActualPos = p.ActualPos - v*  (difference / 2);
 	}
 }
+
+// Array of particles that define the net
+
 Particle* parVerts;
+
+// Nice formula bro -- I know man, I know :v
 
 void sphereCollision(glm::vec3 Q, glm::vec3 &actPos,glm::vec3 &lastPos,  glm::vec3 cS) {
 
 	glm::vec3 n = glm::normalize(Q - cS);
 	float d = -glm::dot(n, Q);
 	if (glm::length(actPos - centreSphere) <= RandomRadiusSphere) { 
-		collidePlane(n, d, actPos, lastPos);	// execute bounce
+		collidePlane(n, d, actPos, lastPos);	// Execute bounce
 	}
 }
 
@@ -193,6 +210,8 @@ void PhysicsCleanup() {
 	delete[] finalMesh;
 	delete parVerts;
 }
+
+// Let's initiate all that stuff
 
 void PhysicsInit() {
 	Kd = 50;
@@ -215,12 +234,14 @@ void PhysicsInit() {
 			else if (i == ClothMesh::numCols - 1 && j == 0) {
 				currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5, 9.5, -4.5 + 1.7f);
 			}
-			currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);// distancia horitzontal i vertical entre nodes = 0.5. Distancia doble = 1. Distància diagonal = sqrt(0.5*0.5 + 0.5*0.5);
+			currMesh[(j * ClothMesh::numCols + i)] = glm::vec3(-4.5 + j*0.5f, 9.5, -4.5 + i*0.5f);
 			lastMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
 			tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
 			finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j * ClothMesh::numCols + i)];
 
-			f = glm::vec3(0, -9.81, 0); // força externa, sa gravetat
+			//The omnipresent gravity
+
+			f = glm::vec3(0, -9.81, 0); 
 
 			parVerts[j * ClothMesh::numCols + i].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
 			parVerts[j * ClothMesh::numCols + i].lastPos = lastMesh[(j * ClothMesh::numCols + i)];
@@ -236,7 +257,9 @@ void PhysicsInit() {
 	RandomRadiusSphere = 0.5f + rand() % 3;
 }
 
-void calculateForces(int i, int j) { // calculate the forces of every node
+// And now let's calculate all the forces that exist on every particle
+
+void calculateForces(int i, int j) {
 	parVerts[(j * ClothMesh::numCols + i)].Force = f;
 
 	if (i < ClothMesh::numCols - 1) { parVerts[(j * ClothMesh::numCols + i)].calculateForce(parVerts[(j * ClothMesh::numCols + (i + 1))], distanceSprings); }
@@ -270,7 +293,7 @@ void calculateForces(int i, int j) { // calculate the forces of every node
 void resetAll()
 {
 	theTime++;
-	if (theTime > 310) //its 20 seconds.
+	if (theTime > 800) // 20 secs
 	{
 		PhysicsCleanup();
 		PhysicsInit();
@@ -298,12 +321,12 @@ void verletSprings(int i, int j, float dt)
 	}
 	
 	else {
-		if (j == 17 && i == 13) {
-		}
-		tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)]; // temporal. Emmagametza sa anterior currMesh
-		finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + (parVerts[(j*ClothMesh::numCols + i)].Force)*(dt*dt);
-		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)]; // posició actual actualitzada
-		lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)]; // posició anterior, que ara conté currMesh
+
+
+		tempMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)]; // Saves the last current position
+		finalMesh[(j * ClothMesh::numCols + i)] = currMesh[(j*ClothMesh::numCols + i)] + (currMesh[(j*ClothMesh::numCols + i)] - lastMesh[(j*ClothMesh::numCols + i)]) + (parVerts[(j*ClothMesh::numCols + i)].Force)*(dt*dt); // Calculates new position by the power of Verlet
+		currMesh[(j * ClothMesh::numCols + i)] = finalMesh[(j * ClothMesh::numCols + i)]; // Current positions updated
+		lastMesh[(j * ClothMesh::numCols + i)] = tempMesh[(j * ClothMesh::numCols + i)]; // Gets the last current position
 
 		//left plane
 		collisionLeft = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(1, 0, 0), 5, currMesh[(j * ClothMesh::numCols + i)], 1);
@@ -317,8 +340,8 @@ void verletSprings(int i, int j, float dt)
 		collisionFront = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, -1), 5, currMesh[(j * ClothMesh::numCols + i)], 5);
 		//back
 		collisionBack = hasCollision(lastMesh[(j * ClothMesh::numCols + i)], glm::vec3(0, 0, 1), 5, currMesh[(j * ClothMesh::numCols + i)], 6);
-		if (j == 17 && i == 13) {
-		}
+
+
 		if (collisionLeft) {
 			collidePlane(glm::vec3(1, 0, 0), 5, currMesh[(j * ClothMesh::numCols + i)], lastMesh[(j * ClothMesh::numCols + i)]);
 		}
@@ -345,14 +368,16 @@ void verletSprings(int i, int j, float dt)
 		parVerts[(j * ClothMesh::numCols + i)].ActualPos = currMesh[(j * ClothMesh::numCols + i)];
 		parVerts[(j * ClothMesh::numCols + i)].vel = (parVerts[(j * ClothMesh::numCols + i)].ActualPos - parVerts[(j * ClothMesh::numCols + i)].lastPos) / dt;
 	
-		if (j< ClothMesh::numRows-1) //ellongation.
+		if (j != ClothMesh::numRows-1) //ellongation.
 			parVerts[(j * ClothMesh::numCols + i)].regulateDist(parVerts[(j + 1) * ClothMesh::numCols + i]);
 	}
 }
 
+
+//Updating all that stuff
+
 void PhysicsUpdate(float dt) {
 	dt /= 10;
-	sphereCollision(parVerts[0].Q, lastMesh[0], lastMesh[0], centreSphere);
 	for (int x = 0; x < 10; x++) {
 		for (int j = 0; j < ClothMesh::numRows; j++) {
 			for (int i = 0; i < ClothMesh::numCols; i++) {
